@@ -1,16 +1,11 @@
 import cv2
 import numpy as np
-
-'''
 import nxt
-
 from nxt.sensor import *
 from nxt.motor import *
 import time
-'''
 import collections 
 
-cv2.namedWindow("preview")
 
 class Sorter (object):
 
@@ -24,7 +19,8 @@ class Sorter (object):
 
         self.coins_box_posistion = {'5': 5, '2': 4, '1': 3, '0.5': 2, '0.2':1, '0.1':0, 'ERROR': '-1'}
         self.coins_size = {19: '0.2', -1: 'ERROR'}
-        
+
+        cv2.namedWindow("preview")
         self.vc = cv2.VideoCapture(video_url);
         self.dequeue = collections.deque(maxlen=30)
 
@@ -36,17 +32,14 @@ class Sorter (object):
         else:
             raise(OSError, "Something is fucked")
 
-
-        
         def set_horizontal_on_position(power=-20, turn=499, isbreak=False):
             self.horizontal.turn(power, turn, isbreak)
             self.current_horizontal_position = 5
         
         set_horizontal_on_position()
 
-
     def run_automata(self):
-        self.computed_posistion = 0;
+        self.computed_posistion = 0
         while True:
             self.state_1()
             self.state_2()
@@ -56,12 +49,12 @@ class Sorter (object):
 
     def state_1(self, power=-65, turn=200, isbreak=False):
        """Get a coin"""
-       self.belt.turn(power, turn, isbreak);
+       self.belt.turn(power, turn, isbreak)
 
     def state_2(self):
        """ Scan a coin """
-       self.counter = 0;
-       self.dequeue.clear();
+       self.counter = 0
+       self.dequeue.clear()
        while True: # and self.counter < self.frame_counter:
             self.counter +=1
             rval, frame = self.vc.read()
@@ -74,7 +67,7 @@ class Sorter (object):
             _, binary_frame = cv2.threshold(gauss_blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             
             circles = cv2.HoughCircles(binary_frame, cv2.HOUGH_GRADIENT,2, 20,
-                                                param1=50,param2=30,minRadius=15,maxRadius=40)
+                                                param1=50, param2=30, minRadius=15, maxRadius=40)
             cv2.imshow('binary', binary_frame)
 
             #print(circles)
@@ -149,8 +142,8 @@ class Sorter (object):
         """Get of coin"""
         self.belt.turn(power, turn, isbreak);
 
-'''
-brick = nxt.find_one_brick();
+
+brick = nxt.find_one_brick()
 
 print(brick)
 motor_1 = Motor(brick, PORT_A)
@@ -158,16 +151,14 @@ motor_1 = Motor(brick, PORT_A)
 print(motor_1)
 motor_2 = Motor(brick, PORT_B)
 
-#motor_2.turn(65, 100, brake=False)
-'''
-motor_1 = None
-motor_2 = None
+# motor_2.turn(65, 100, brake=False)
+# motor_1 = None
+# motor_2 = None
 
 sorter = Sorter(motor_1, motor_2, 'http://192.168.52:4747/mjpegfeed?640x480')
 sorter.run_automata()
 
 
-#main loop
 '''
 while True:
 
