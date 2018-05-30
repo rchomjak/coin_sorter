@@ -22,8 +22,8 @@ class Sorter (object):
         self.current_horizontal_position = None
         self.previous_horizontal_position = None
 
-        self.coins_box_posistion = {1:'1', 2: '2', 3 : '3', 4:'0.5', 5:'0.20', 6:'0.10' }
-        self.coins_size = {20: '0.2', -1: 'ERROR'}
+        self.coins_box_posistion = {'5': 5, '2': 4, '1': 3, '0.5': 2, '0.2':1, '0.1':0, 'ERROR': '-1'}
+        self.coins_size = {19: '0.2', -1: 'ERROR'}
         
         self.vc = cv2.VideoCapture(video_url);
         self.dequeue = collections.deque(maxlen=30)
@@ -37,30 +37,22 @@ class Sorter (object):
             raise(OSError, "Something is fucked")
 
 
-        self.state_2();
-
-        '''
+        
         def set_horizontal_on_position(power=-20, turn=499, isbreak=False):
             self.horizontal.turn(power, turn, isbreak)
             self.current_horizontal_position = 5
-
+        
         set_horizontal_on_position()
-        self.current_horizontal_position =5
-        self.state_4(3)
-        self.state_4(5)
-        self.state_4(0)
-        self.state_4(2)
-        '''
+
 
     def run_automata(self):
-
+        self.computed_posistion = 0;
         while True:
             self.state_1()
             self.state_2()
-            self.state_3()
-            self.state_4()
+            self.computed_posistion = self.state_3()
+            self.state_4(self.computed_posistion)
             self.state_5()
-
 
     def state_1(self, power=-65, turn=200, isbreak=False):
        """Get a coin"""
@@ -105,7 +97,7 @@ class Sorter (object):
        
        #cv2.destroyWindow("preview")
        #self.vc.release()
-       self.state_3();
+       #self.state_3();
 
     def state_3(self):
         """ decide """
@@ -116,12 +108,13 @@ class Sorter (object):
 
         coin_radius_median = np.median(self.dequeue)
         print("coin radius " +  str(coin_radius_median))
+        #-1 means ERROR
         coin_type = self.coins_size.get(coin_radius_median, -1)         
         print("coin_type " + str(coin_type))
-
+        position = self.coins_box_posistion.get(coin_type, -1) 
         
-    
-
+        return position
+        
 
     def state_4(self, new_position):
         """ Move belt to position  """
@@ -156,8 +149,6 @@ class Sorter (object):
         """Get of coin"""
         self.belt.turn(power, turn, isbreak);
 
-
-
 '''
 brick = nxt.find_one_brick();
 
@@ -173,6 +164,8 @@ motor_1 = None
 motor_2 = None
 
 sorter = Sorter(motor_1, motor_2, 'http://192.168.52:4747/mjpegfeed?640x480')
+sorter.run_automata()
+
 
 #main loop
 '''
