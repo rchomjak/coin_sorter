@@ -1,15 +1,20 @@
-import nxt
 import cv2
+import numpy as np
+
+'''
+import nxt
 
 from nxt.sensor import *
 from nxt.motor import *
 import time
+'''
+import collections 
+
 cv2.namedWindow("preview")
-vc = cv2.VideoCapture("http://192.168.0.52:4747/mjpegfeed?960x720")
 
 class Sorter (object):
 
-    def __init__(self, motor_belt, motor_horizontal):
+    def __init__(self, motor_belt, motor_horizontal, video_url):
 
         self.belt = motor_belt
         self.horizontal = motor_horizontal
@@ -18,7 +23,23 @@ class Sorter (object):
         self.previous_horizontal_position = None
 
         self.coins_box_posistion = {1:'1', 2: '2', 3 : '3', 4:'0.5', 5:'0.20', 6:'0.10' }
+        self.coins_size = {20: '0.2', -1: 'ERROR'}
+        
+        self.vc = cv2.VideoCapture(video_url);
+        self.dequeue = collections.deque(maxlen=30)
 
+        self.frame_counter = 50;
+
+        if self.vc.isOpened(): # try to get the first frame
+
+            rval, frame = self.vc.read()
+        else:
+            raise(OSError, "Something is fucked")
+
+
+        self.state_2();
+
+        '''
         def set_horizontal_on_position(power=-20, turn=499, isbreak=False):
             self.horizontal.turn(power, turn, isbreak)
             self.current_horizontal_position = 5
@@ -29,6 +50,17 @@ class Sorter (object):
         self.state_4(5)
         self.state_4(0)
         self.state_4(2)
+        '''
+
+    def run_automata(self):
+
+        while True:
+            self.state_1()
+            self.state_2()
+            self.state_3()
+            self.state_4()
+            self.state_5()
+
 
     def state_1(self, power=-65, turn=200, isbreak=False):
        """Get a coin"""
@@ -36,11 +68,59 @@ class Sorter (object):
 
     def state_2(self):
        """ Scan a coin """
-       pass
+       self.counter = 0;
+       self.dequeue.clear();
+       while True: # and self.counter < self.frame_counter:
+            self.counter +=1
+            rval, frame = self.vc.read()
+            cv2.imshow("preview", frame)
+
+            cimg = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gauss_blur = cv2.GaussianBlur(cimg, (1, 1), -1)
+
+            cv2.imshow('grayscale', gauss_blur);
+            _, binary_frame = cv2.threshold(gauss_blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            
+            circles = cv2.HoughCircles(binary_frame, cv2.HOUGH_GRADIENT,2, 20,
+                                                param1=50,param2=30,minRadius=15,maxRadius=40)
+            cv2.imshow('binary', binary_frame)
+
+            #print(circles)
+            if circles is not None:
+             
+                circles = np.uint16(np.around(circles))
+                for i in circles[0,:]:
+                    print(i[2]) 
+                    self.dequeue.append(i[2]); 
+                    # draw the outer circle
+                    cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
+                    # draw the chttps://www.reddit.com/r/Iota/enter of the circle
+                    #cv2.circle(frame,(i[0],i[1]),2,(0,0,255),3)
+            
+                cv2.imshow('circle', frame) 
+            key = cv2.waitKey(20)
+            if key == 27: # exit on ESC
+                print(self.dequeue)
+                break
+       
+       #cv2.destroyWindow("preview")
+       #self.vc.release()
+       self.state_3();
 
     def state_3(self):
         """ decide """
-        pass
+
+        if self.dequeue.count == 0:
+            #not found
+            print("Empty queue")
+
+        coin_radius_median = np.median(self.dequeue)
+        print("coin radius " +  str(coin_radius_median))
+        coin_type = self.coins_size.get(coin_radius_median, -1)         
+        print("coin_type " + str(coin_type))
+
+        
+    
 
 
     def state_4(self, new_position):
@@ -53,11 +133,10 @@ class Sorter (object):
         def move_position(power=20, power_sign=-1, to_position=1, turn=84, isbreak=False):
             self.horizontal.turn(int(power*power_sign), abs(int(turn*to_position)), isbreak)
 
-
         self.to_position = new_position - self.current_horizontal_position
-        print(self.to_position)
-        print(new_position)
-        print(self.current_horizontal_position)
+        print("to position " + self.to_position)
+        print("new_position "  +  new_position)
+        print("current position" +  self.current_horizontal_position)
 
         if self.to_position == 0:
             return
@@ -73,7 +152,13 @@ class Sorter (object):
         self.previous_horizontal_position = self.current_horizontal_position
         self.current_horizontal_position += self.to_position
 
+    def state_5(self, power=-65, turn=200, isbreak=False):
+        """Get of coin"""
+        self.belt.turn(power, turn, isbreak);
 
+
+
+'''
 brick = nxt.find_one_brick();
 
 print(brick)
@@ -83,31 +168,11 @@ print(motor_1)
 motor_2 = Motor(brick, PORT_B)
 
 #motor_2.turn(65, 100, brake=False)
+'''
+motor_1 = None
+motor_2 = None
 
-
-
-sorter = Sorter(motor_1, motor_2)
-
-#sorter.state_1()
-
-
-#sorter.belt.turn_left
-if vc.isOpened(): # try to get the first frame
-    rval, frame = vc.read()
-else:
-    rval = False
-    print("Fail")
-
-while rval:
-    cv2.imshow("preview", frame)
-    rval, frame = vc.read()
-    key = cv2.waitKey(20)
-    if key == 27: # exit on ESC
-        break
-
-cv2.destroyWindow("preview")
-vc.release()
-
+sorter = Sorter(motor_1, motor_2, 'http://192.168.52:4747/mjpegfeed?640x480')
 
 #main loop
 '''
