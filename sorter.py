@@ -36,12 +36,12 @@ class Sorter (object):
             self.horizontal.turn(power, turn, isbreak)
             self.current_horizontal_position = 5
         
-        set_horizontal_on_position()
+        # set_horizontal_on_position()
 
     def run_automata(self):
         self.computed_posistion = 0
         while True:
-            self.state_1()
+            # self.state_1()
             self.state_2()
             self.computed_posistion = self.state_3()
             self.state_4(self.computed_posistion)
@@ -63,11 +63,11 @@ class Sorter (object):
             cimg = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             gauss_blur = cv2.GaussianBlur(cimg, (1, 1), -1)
 
-            cv2.imshow('grayscale', gauss_blur);
-            _, binary_frame = cv2.threshold(gauss_blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            cv2.imshow('grayscale', gauss_blur)
+            _, binary_frame = cv2.threshold(gauss_blur, 50, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             
-            circles = cv2.HoughCircles(binary_frame, cv2.HOUGH_GRADIENT,2, 20,
-                                                param1=50, param2=30, minRadius=15, maxRadius=40)
+            circles = cv2.HoughCircles(gauss_blur, cv2.HOUGH_GRADIENT, 1.2, 130,
+                                                param1=100, param2=35, minRadius=68, maxRadius=110)
             cv2.imshow('binary', binary_frame)
 
             #print(circles)
