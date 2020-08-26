@@ -1,3 +1,10 @@
+
+Implementation of coing sorting on LEGO Mindstorm platform.
+
+We use OpenCV to detect coins and with simple statistics and program decides what 
+robot will do.
+
+
 Dependency:
 
 For RPi:
